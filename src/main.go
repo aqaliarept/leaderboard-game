@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Aqaliarept/leaderboard-game/application/grains"
 	generated "github.com/Aqaliarept/leaderboard-game/cluster"
-	"github.com/Aqaliarept/leaderboard-game/grains"
 
 	console "github.com/asynkron/goconsole"
 	actor "github.com/asynkron/protoactor-go/actor"
