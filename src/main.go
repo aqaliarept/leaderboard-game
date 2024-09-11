@@ -1,11 +1,18 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
-	"github.com/Aqaliarept/leaderboard-game/actors"
+	generated "github.com/Aqaliarept/leaderboard-game/cluster"
+	"github.com/Aqaliarept/leaderboard-game/grains"
+
 	console "github.com/asynkron/goconsole"
-	"github.com/asynkron/protoactor-go/actor"
+	actor "github.com/asynkron/protoactor-go/actor"
+	cluster "github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/cluster/clusterproviders/test"
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
+	"github.com/asynkron/protoactor-go/remote"
 )
 
 type clock struct {
@@ -17,22 +24,34 @@ func (clock) Now() time.Time {
 
 func main() {
 	system := actor.NewActorSystem()
+	provider := test.NewTestProvider(test.NewInMemAgent())
+	lookup := disthash.New()
+	config := remote.Configure("localhost", 0)
+	playerKind := generated.NewPlayerKind(grains.NewPlayerGrain, 0)
+	compKind := generated.NewCompetitionKind(grains.NewCompetitionGrain, 0)
+	gatekeeperKind := generated.NewGatekeeperKind(grains.NewGatekeeper, 0)
+	clusterConfig := cluster.Configure("test", provider, lookup, config, cluster.WithKinds(playerKind, compKind, gatekeeperKind))
+	cst := cluster.New(system, clusterConfig)
+	cst.StartMember()
+	client := generated.GetPlayerGrainClient(cst, "test")
+	_, err := client.Join(&generated.JoinRequest{Name: "player-1"})
+	if err != nil {
+		if generated.IsUserNotFound(err) {
+			fmt.Println("user not found")
+		} else {
+			fmt.Printf("unknown error: %v\n", err)
+		}
+	}
 
-	competitionCoordinatorProps := actor.PropsFromProducer(func() actor.Actor { return actors.NewCompetitionCoordinatorActor() })
-	ccPid, err := system.Root.SpawnNamed(competitionCoordinatorProps, "competition-coordinator")
-	if err != nil {
-		panic(err)
-	}
-	gatekeeperProps := actor.PropsFromProducer(func() actor.Actor { return actors.NewGatekeeperActor(ccPid, &clock{}) })
-	gkPid, err := system.Root.SpawnNamed(gatekeeperProps, "gatekeeper")
-	if err != nil {
-		panic(err)
-	}
-	props := actor.PropsFromProducer(func() actor.Actor { return actors.NewLeaderboard(gkPid) })
-	_, err = system.Root.SpawnNamed(props, "leaderboard")
-	if err != nil {
-		panic(err)
-	}
-	// fmt.Printf("%#v", res)
+	// client := generated.GetGatekeeperGrainClient(cst, "gatekeeper")
+	// r := &generated.EnqueueRequest{
+	// 	PlayerId: "aaa",
+	// 	Level:    1,
+	// }
+	// _, err := client.Enqueue(r)
+	// if err != nil {
+	// 	fmt.Printf("unknown error: %v\n", err)
+	// }
+
 	_, _ = console.ReadLine()
 }

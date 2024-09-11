@@ -56,7 +56,7 @@ func (state *PlayerActor) Idle(context actor.Context) {
 	switch context.Message().(type) {
 	case *Join:
 		// report to bucket router
-		context.Request(state.gatekeeperPid, &JoinWaiting{context.Self(), state.id, state.level, state.country})
+		Request(context, state.gatekeeperPid, &JoinWaiting{context.Self(), state.id, state.level, state.country})
 		state.behavior.Become(state.Waiting)
 		context.Logger().Info("player", slog.String("state", "waiting"))
 		context.Respond(&OK{})

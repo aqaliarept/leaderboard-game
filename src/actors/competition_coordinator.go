@@ -13,7 +13,7 @@ type (
 		Id  PlayerId
 		Pid *actor.PID
 	}
-	StartCompetition struct{ Players []PlayerRef }
+	StartCompetition struct{ Competitions [][]PlayerRef }
 )
 
 type CompetitionCoordinatorActor struct {
@@ -27,15 +27,23 @@ func NewCompetitionCoordinatorActor() actor.Actor {
 // Receive implements actor.Actor.
 func (state *CompetitionCoordinatorActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
-	case StartCompetition:
-		competitionId := domain.CompetitionId(uuid.NewString())
-		props := actor.PropsFromProducer(func() actor.Actor {
-			return NewCompetitionActor(competitionId, msg.Players)
-		})
-		pid, err := context.SpawnNamed(props, fmt.Sprintf("comp-%s", competitionId))
-		if err != nil {
-			panic(err)
+	case *StartCompetition:
+		context.Logger().Info("Start competition")
+		for _, c := range msg.Competitions {
+			competitionId := domain.CompetitionId(uuid.NewString())
+			props := actor.PropsFromProducer(func() actor.Actor {
+				return NewCompetitionActor(competitionId, c)
+			})
+			pid, err := context.SpawnNamed(props, fmt.Sprintf("comp-%s", competitionId))
+			if err != nil {
+				panic(err)
+			}
+			state.competitions[competitionId] = pid
 		}
-		state.competitions[competitionId] = pid
+		context.Respond(&OK{})
+	case *CompetitionCompleted:
+		context.Logger().Info(fmt.Sprintf("Completed [%s]", msg.Id))
+		delete(state.competitions, msg.Id)
+		context.Respond(&OK{})
 	}
 }

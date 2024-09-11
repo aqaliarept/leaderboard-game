@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+import "options.proto";
+
+option go_package = "github.com/Aqaliarept/leaderboard-game/cluster";
+
+message None {}
+
+enum ErrorReason{
+  USER_NOT_FOUND = 0;
+}
+
+message JoinRequest {
+  string name = 1;
+}
+
+message JoinResponse {
+  string message = 1;
+}
+
+message StartCompetitionRequest {
+  string id = 1;
+}
+
+message AddScoresRequest {
+  int32 scores = 1;
+}
+
+message CompleteCompetitionRequest {
+}
+
+message EnqueueRequest {
+  string playerId = 1;
+  int32 level = 2;  
+}
+
+message StartRequest {
+  repeated string players = 1;
+}
+
+message AddPlayerScoresRequest {
+  string playerId = 1;
+  int32 scrores = 2;
+}
+
+
+service Player {
+  rpc Join (JoinRequest) returns (None) {
+  }
+
+  rpc StartCompetition (StartCompetitionRequest) returns (None) {
+  }
+
+  rpc WaitingExpired (None) returns (None) {
+  }
+
+  rpc AddScores (AddScoresRequest) returns (None) {
+  }
+
+  rpc CompleteCompetition (None) returns (None) {
+  }
+}
+
+service Gatekeeper {
+  rpc Enqueue (EnqueueRequest) returns (None) {
+  }
+}
+
+service Competition {
+  rpc Start (StartRequest) returns (None){
+  }
+
+  rpc AddScores(AddPlayerScoresRequest) returns (None){
+  }
+}
+
+
