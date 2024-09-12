@@ -18,4 +18,4 @@ COPY --from=build /app .
 EXPOSE 8000
 
 # USER 65532:65532
-ENTRYPOINT ["/app"] 
+ENTRYPOINT ["/app", "--port", "8000"] 
