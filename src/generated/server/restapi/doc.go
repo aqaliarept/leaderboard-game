@@ -5,7 +5,7 @@
 //	API for managing leaderboard entries and scores.
 //	Schemes:
 //	  http
-//	Host: api.example.com
+//	Host: localhost:9090
 //	BasePath: /
 //	Version: 1.0.0
 //

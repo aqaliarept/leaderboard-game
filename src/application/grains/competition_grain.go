@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Aqaliarept/leaderboard-game/application"
 	"github.com/Aqaliarept/leaderboard-game/domain"
 	"github.com/Aqaliarept/leaderboard-game/domain/competition"
 	"github.com/Aqaliarept/leaderboard-game/domain/player"
@@ -16,13 +17,26 @@ import (
 	"github.com/samber/lo"
 )
 
-type CompetitionGrain struct {
-	scheduler   *scheduler.TimerScheduler
-	competition *competition.Competition
+var duration = time.Duration(1 * time.Minute)
+
+type CompetitionGrainFactory struct {
+	clock   Clock
+	storage application.LeaderBoardStorage
 }
 
-func NewCompetitionGrain() generated.Competition {
-	return &CompetitionGrain{}
+func NewCompetitionGrainFactory(clock Clock, storage application.LeaderBoardStorage) *CompetitionGrainFactory {
+	return &CompetitionGrainFactory{clock, storage}
+}
+
+func (f *CompetitionGrainFactory) New() generated.Competition {
+	return &CompetitionGrain{f.clock, f.storage, nil, nil}
+}
+
+type CompetitionGrain struct {
+	clock       Clock
+	storage     application.LeaderBoardStorage
+	scheduler   *scheduler.TimerScheduler
+	competition *competition.Competition
 }
 
 // AddScores implements cluster.Competition.
@@ -32,6 +46,7 @@ func (state *CompetitionGrain) AddScores(req *generated.AddPlayerScoresRequest, 
 	if err != nil {
 		return none, err
 	}
+	state.updateReadModel(false)
 	return none, nil
 }
 
@@ -54,6 +69,7 @@ func (state *CompetitionGrain) ReceiveDefault(ctx cluster.GrainContext) {
 		if errors.Is(err, domain.ErrNotFound) {
 			return
 		}
+		state.updateReadModel(true)
 		for _, player := range e.Players {
 			client := generated.GetPlayerGrainClient(ctx.Cluster(), string(player))
 			_, err := client.CompleteCompetition(none)
@@ -75,9 +91,10 @@ func (state *CompetitionGrain) Start(req *generated.StartRequest, ctx cluster.Gr
 	state.competition = competition.New(core.AggregateId(id),
 		lo.Map(req.Players, func(id string, _ int) player.PlayerId {
 			return player.PlayerId(id)
-		}))
+		}), state.clock.Now(), duration)
+	state.updateReadModel(false)
 	state.scheduler = scheduler.NewTimerScheduler(ctx)
-	state.scheduler.SendOnce(30*time.Second, ctx.Self(), &tick{})
+	state.scheduler.SendOnce(duration, ctx.Self(), &tick{})
 	for _, player := range req.Players {
 		client := generated.GetPlayerGrainClient(ctx.Cluster(), player)
 		_, err := client.StartCompetition(&generated.StartCompetitionRequest{Id: id})
@@ -86,4 +103,8 @@ func (state *CompetitionGrain) Start(req *generated.StartRequest, ctx cluster.Gr
 		}
 	}
 	return none, nil
+}
+
+func (state *CompetitionGrain) updateReadModel(isCompleted bool) {
+	state.storage.Save(state.competition.GetInfo(), isCompleted)
 }

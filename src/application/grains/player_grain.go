@@ -72,6 +72,9 @@ func (state *PlayerGrain) Join(req *generated.JoinRequest, ctx cluster.GrainCont
 func (state *PlayerGrain) AddScores(req *generated.AddScoresRequest, ctx cluster.GrainContext) (*generated.None, error) {
 	ctx.Logger().Info("ADD SCORES", "id", ctx.Identity(), "scores", req.Scores)
 	pack, err := state.player.AddScores(player.Scores(req.Scores))
+	if errors.Is(err, player.ErrNotPlaying) {
+		return none, generated.ErrPlayerNotPlaying(err.Error())
+	}
 	if err != nil {
 		return none, err
 	}

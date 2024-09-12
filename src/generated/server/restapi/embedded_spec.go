@@ -27,7 +27,7 @@ func init() {
     "title": "Leaderboard API",
     "version": "1.0.0"
   },
-  "host": "api.example.com",
+  "host": "localhost:9090",
   "basePath": "/",
   "paths": {
     "/leaderboard/join": {
@@ -199,7 +199,7 @@ func init() {
     "title": "Leaderboard API",
     "version": "1.0.0"
   },
-  "host": "api.example.com",
+  "host": "localhost:9090",
   "basePath": "/",
   "paths": {
     "/leaderboard/join": {

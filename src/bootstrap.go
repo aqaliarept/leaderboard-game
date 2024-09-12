@@ -30,13 +30,16 @@ func NewClock() grains.Clock {
 	return &clock{}
 }
 
-func NewCluster(playerFactory *grains.PlayerGrainFactory) *cluster.Cluster {
+func NewCluster(
+	playerFactory *grains.PlayerGrainFactory,
+	competitionFactory *grains.CompetitionGrainFactory,
+) *cluster.Cluster {
 	system := actor.NewActorSystem()
 	provider := test.NewTestProvider(test.NewInMemAgent())
 	lookup := disthash.New()
 	config := remote.Configure("localhost", 0)
 	playerKind := generated.NewPlayerKind(playerFactory.New, 0)
-	compKind := generated.NewCompetitionKind(grains.NewCompetitionGrain, 0)
+	compKind := generated.NewCompetitionKind(competitionFactory.New, 0)
 	gatekeeperKind := generated.NewGatekeeperKind(grains.NewGatekeeper, 0)
 	clusterConfig := cluster.Configure("test", provider, lookup, config, cluster.WithKinds(playerKind, compKind, gatekeeperKind))
 	return cluster.New(system, clusterConfig)

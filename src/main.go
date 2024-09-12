@@ -5,6 +5,8 @@ import (
 	"log"
 
 	httpapi "github.com/Aqaliarept/leaderboard-game/adapters/in/http_api"
+	"github.com/Aqaliarept/leaderboard-game/adapters/out/storage"
+	"github.com/Aqaliarept/leaderboard-game/application"
 	"github.com/Aqaliarept/leaderboard-game/application/grains"
 	"github.com/Aqaliarept/leaderboard-game/application/services"
 	"github.com/Aqaliarept/leaderboard-game/generated/server/restapi"
@@ -15,7 +17,9 @@ import (
 func configureContainer() fx.Option {
 	return fx.Options(
 		fx.Provide(NewClock),
+		fx.Provide(storage.NewMemStrore),
 		fx.Provide(grains.NewPlayerGrainFactory),
+		fx.Provide(grains.NewCompetitionGrainFactory),
 		fx.Provide(NewCluster),
 		fx.Provide(NewWebServer),
 		fx.Provide(httpapi.NewLeaderboardApiImpl),
@@ -31,10 +35,11 @@ func main() {
 	app.Run()
 }
 
-func registerHooks(lifecycle fx.Lifecycle, cluster *cluster.Cluster, server *restapi.Server) {
+func registerHooks(lifecycle fx.Lifecycle, cluster *cluster.Cluster, server *restapi.Server, storage application.LeaderBoardStorage) {
 	lifecycle.Append(
 		fx.Hook{
 			OnStart: func(ctx context.Context) error {
+				storage.Start()
 				cluster.StartMember()
 				go func() {
 					err := server.Serve()

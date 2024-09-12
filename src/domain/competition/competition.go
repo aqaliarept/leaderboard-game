@@ -3,15 +3,29 @@ package competition
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/Aqaliarept/leaderboard-game/domain/player"
 	"github.com/gr1nd3rz/go-fast-ddd/core"
+	"github.com/samber/lo"
 	"github.com/zavitax/sortedset-go"
 )
 
 var _ core.AggregateState = CompetitionState{}
 
+type PlayerInfo struct {
+	Id     player.PlayerId
+	Scores player.Scores
+}
+
+type CompetitionInfo struct {
+	Id      player.CompetitionId
+	EndsAt  time.Time
+	Players []PlayerInfo
+}
+
 type CompetitionState struct {
+	endsAt      time.Time
 	competed    bool
 	leaderboard *sortedset.SortedSet[player.PlayerId, player.Scores, player.PlayerId]
 	players     []player.PlayerId
@@ -20,6 +34,7 @@ type CompetitionState struct {
 // events
 type Created struct {
 	Players []player.PlayerId
+	EndsAt  time.Time
 }
 
 type ScoresUpdated struct {
@@ -57,9 +72,9 @@ type Competition struct {
 	core.Aggregate[CompetitionState]
 }
 
-func New(id core.AggregateId, players []player.PlayerId) *Competition {
+func New(id core.AggregateId, players []player.PlayerId, now time.Time, duration time.Duration) *Competition {
 	c := &Competition{}
-	c.Initialize(id, Created{players})
+	c.Initialize(id, Created{players, now.Add(duration)})
 	return c
 }
 
@@ -84,4 +99,15 @@ func (c *Competition) Complete() (core.EventPack, error) {
 		er.RaiseTrue(!cs.competed, Completed{cs.players})
 		return nil
 	})
+}
+
+func (c *Competition) GetInfo() *CompetitionInfo {
+	set := c.State().leaderboard
+	return &CompetitionInfo{
+		player.CompetitionId(c.Id()),
+		c.State().endsAt,
+		lo.Map(set.GetRangeByRank(1, -1, false), func(n *sortedset.SortedSetNode[player.PlayerId, player.Scores, player.PlayerId], _ int) PlayerInfo {
+			return PlayerInfo{n.Key(), -n.Score()}
+		}),
+	}
 }

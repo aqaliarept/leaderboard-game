@@ -4,7 +4,7 @@ info:
   title: Leaderboard API
   description: API for managing leaderboard entries and scores.
 
-host: "api.example.com"
+host: "localhost:9090"
 basePath: "/"
 schemes:
   - "http"

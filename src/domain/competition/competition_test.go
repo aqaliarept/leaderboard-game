@@ -2,6 +2,7 @@ package competition
 
 import (
 	"testing"
+	"time"
 
 	"github.com/Aqaliarept/leaderboard-game/domain/player"
 	"github.com/samber/lo"
@@ -25,7 +26,8 @@ func TestCompetition(t *testing.T) {
 		When reporting the scores
 		Then players should be ranged by their scores
 	`, func(t *testing.T) {
-		c := New("test", []player.PlayerId{"1", "2", "3"})
+		start := time.Now()
+		c := New("test", []player.PlayerId{"1", "2", "3"}, start, 1*time.Hour)
 		require.Equal(t, []player.PlayerId{"1", "2", "3"}, mapPlayers(c.State().leaderboard))
 		c.ReportScores("1", 10)
 		c.ReportScores("2", 20)
