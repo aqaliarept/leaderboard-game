@@ -1,7 +1,10 @@
 package httpapi
 
 import (
+	"net/http"
+
 	"github.com/Aqaliarept/leaderboard-game/application/services"
+	generated "github.com/Aqaliarept/leaderboard-game/generated/cluster"
 	"github.com/Aqaliarept/leaderboard-game/generated/server/restapi/operations"
 	"github.com/go-openapi/runtime/middleware"
 )
@@ -10,7 +13,7 @@ type LeaderboardApiImpl struct {
 	service *services.LeaderboardService
 }
 
-func NewApiImpl(service *services.LeaderboardService) *LeaderboardApiImpl {
+func NewLeaderboardApiImpl(service *services.LeaderboardService) *LeaderboardApiImpl {
 	return &LeaderboardApiImpl{service}
 }
 
@@ -35,8 +38,11 @@ func (s *LeaderboardApiImpl) getPlayerLeaderboard(params operations.GetPlayerLea
 
 func (s *LeaderboardApiImpl) join(params operations.JoinParams) middleware.Responder {
 	err := s.service.Join(params.PlayerID)
-	if err != nil {
+	if generated.IsPlayerAlreadyPlaying(err) {
 		return &operations.JoinConflict{}
+	}
+	if err != nil {
+		return middleware.Error(http.StatusInternalServerError, nil)
 	}
 	return &operations.JoinAccepted{}
 }

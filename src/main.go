@@ -18,7 +18,7 @@ func configureContainer() fx.Option {
 		fx.Provide(grains.NewPlayerGrainFactory),
 		fx.Provide(NewCluster),
 		fx.Provide(NewWebServer),
-		fx.Provide(httpapi.NewApiImpl),
+		fx.Provide(httpapi.NewLeaderboardApiImpl),
 		fx.Provide(services.NewLeaderboardService),
 		fx.Invoke(registerHooks),
 	)

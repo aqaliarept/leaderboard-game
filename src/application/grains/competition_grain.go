@@ -6,6 +6,9 @@ import (
 	"time"
 
 	"github.com/Aqaliarept/leaderboard-game/domain"
+	"github.com/Aqaliarept/leaderboard-game/domain/competition"
+	"github.com/Aqaliarept/leaderboard-game/domain/player"
+
 	generated "github.com/Aqaliarept/leaderboard-game/generated/cluster"
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/scheduler"
@@ -15,7 +18,7 @@ import (
 
 type CompetitionGrain struct {
 	scheduler   *scheduler.TimerScheduler
-	competition *domain.Competition
+	competition *competition.Competition
 }
 
 func NewCompetitionGrain() generated.Competition {
@@ -25,7 +28,7 @@ func NewCompetitionGrain() generated.Competition {
 // AddScores implements cluster.Competition.
 func (state *CompetitionGrain) AddScores(req *generated.AddPlayerScoresRequest, ctx cluster.GrainContext) (*generated.None, error) {
 	ctx.Logger().Info("ADD SCORES")
-	_, err := state.competition.ReportScores(domain.PlayerId(req.PlayerId), domain.Scores(req.Scrores))
+	_, err := state.competition.ReportScores(player.PlayerId(req.PlayerId), player.Scores(req.Scrores))
 	if err != nil {
 		return none, err
 	}
@@ -47,8 +50,8 @@ func (state *CompetitionGrain) ReceiveDefault(ctx cluster.GrainContext) {
 		if err != nil {
 			ctx.Logger().Error(err.Error())
 		}
-		e, err := EventOfType[domain.Completed](pack)
-		if errors.Is(err, ErrNotFound) {
+		e, err := domain.EventOfType[competition.Completed](pack)
+		if errors.Is(err, domain.ErrNotFound) {
 			return
 		}
 		for _, player := range e.Players {
@@ -69,12 +72,12 @@ func (c *CompetitionGrain) Terminate(ctx cluster.GrainContext) {
 func (state *CompetitionGrain) Start(req *generated.StartRequest, ctx cluster.GrainContext) (*generated.None, error) {
 	ctx.Logger().Info("COMPETITION STARTED")
 	id := ctx.Identity()
-	state.competition = domain.NewCompetition(core.AggregateId(id),
-		lo.Map(req.Players, func(id string, _ int) domain.PlayerId {
-			return domain.PlayerId(id)
+	state.competition = competition.New(core.AggregateId(id),
+		lo.Map(req.Players, func(id string, _ int) player.PlayerId {
+			return player.PlayerId(id)
 		}))
 	state.scheduler = scheduler.NewTimerScheduler(ctx)
-	state.scheduler.SendOnce(5*time.Second, ctx.Self(), &tick{})
+	state.scheduler.SendOnce(30*time.Second, ctx.Self(), &tick{})
 	for _, player := range req.Players {
 		client := generated.GetPlayerGrainClient(ctx.Cluster(), player)
 		_, err := client.StartCompetition(&generated.StartCompetitionRequest{Id: id})

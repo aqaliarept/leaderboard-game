@@ -1,10 +1,11 @@
-package domain
+package waiting_queue
 
 import (
 	"fmt"
 	"testing"
 	"time"
 
+	"github.com/Aqaliarept/leaderboard-game/domain/player"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 )
@@ -32,7 +33,7 @@ func TestQueue(t *testing.T) {
 
 		s, ok := queue.dequeue(1)
 		require.True(t, ok)
-		require.Equal(t, []PlayerId{"one"}, s)
+		require.Equal(t, []player.PlayerId{"one"}, s)
 		require.Equal(t, uint(1), queue.Len())
 
 		queue.Push("three", time.Time{})
@@ -42,7 +43,7 @@ func TestQueue(t *testing.T) {
 
 		s, ok = queue.dequeue(2)
 		require.True(t, ok)
-		require.Equal(t, []PlayerId{
+		require.Equal(t, []player.PlayerId{
 			"two",
 			"three",
 		}, s)
@@ -59,7 +60,7 @@ func TestQueue(t *testing.T) {
 		queue.Push("2", time.Time{})
 		queue.Push("3", now)
 		res := queue.dequeueStaled(now)
-		require.Equal(t, []PlayerId{
+		require.Equal(t, []player.PlayerId{
 			"1",
 			"2",
 		}, res)
@@ -109,7 +110,7 @@ func TestQueue(t *testing.T) {
 		queue := newQueue()
 		now := time.Now()
 		for i := range lo.Range(12) {
-			queue.Push(PlayerId(fmt.Sprintf("%d", i)), now)
+			queue.Push(player.PlayerId(fmt.Sprintf("%d", i)), now)
 		}
 		result := queue.Next(now)
 		require.Empty(t, result.Staled)
@@ -124,10 +125,10 @@ func TestQueue(t *testing.T) {
 		queue.Push("s1", now.Add(-6*time.Second))
 		queue.Push("s2", now.Add(-5*time.Second))
 		for i := range lo.Range(12) {
-			queue.Push(PlayerId(fmt.Sprintf("%d", i)), now.Add(-4*time.Second))
+			queue.Push(player.PlayerId(fmt.Sprintf("%d", i)), now.Add(-4*time.Second))
 		}
 		result := queue.Next(now)
-		require.Equal(t, []PlayerId{"s1", "s2"}, result.Staled)
+		require.Equal(t, []player.PlayerId{"s1", "s2"}, result.Staled)
 		require.Equal(t, 2, len(result.Competitions))
 		require.Equal(t, 10, len(result.Competitions[0]))
 		require.Equal(t, 2, len(result.Competitions[1]))
@@ -138,6 +139,6 @@ func TestQueue(t *testing.T) {
 		now := time.Now()
 		queue.Push("s1", now.Add(-6*time.Second))
 		result := queue.Next(now)
-		require.Equal(t, []PlayerId{"s1"}, result.Staled)
+		require.Equal(t, []player.PlayerId{"s1"}, result.Staled)
 	})
 }

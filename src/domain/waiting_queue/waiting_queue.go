@@ -1,12 +1,14 @@
-package domain
+package waiting_queue
 
 import (
 	"container/list"
 	"time"
+
+	"github.com/Aqaliarept/leaderboard-game/domain/player"
 )
 
 type slot struct {
-	playerId     PlayerId
+	playerId     player.PlayerId
 	waitingSince time.Time
 }
 
@@ -27,17 +29,17 @@ func (q *BracketQueue) Len() uint {
 	return q.count
 }
 
-func (q *BracketQueue) Push(player PlayerId, now time.Time) {
+func (q *BracketQueue) Push(player player.PlayerId, now time.Time) {
 	q.count++
 	q.list.PushBack(slot{player, now})
 }
 
-func (q *BracketQueue) dequeue(count uint) ([]PlayerId, bool) {
+func (q *BracketQueue) dequeue(count uint) ([]player.PlayerId, bool) {
 	if q.count < count {
 		return nil, false
 	}
 	q.count -= count
-	res := make([]PlayerId, count)
+	res := make([]player.PlayerId, count)
 	for i := uint(0); i < count; i++ {
 		el := q.list.Front()
 		res[i] = el.Value.(slot).playerId
@@ -46,8 +48,8 @@ func (q *BracketQueue) dequeue(count uint) ([]PlayerId, bool) {
 	return res, true
 }
 
-func (q *BracketQueue) dequeueStaled(now time.Time) []PlayerId {
-	res := make([]PlayerId, 0)
+func (q *BracketQueue) dequeueStaled(now time.Time) []player.PlayerId {
+	res := make([]player.PlayerId, 0)
 	for {
 		el := q.list.Front()
 		if el == nil {
@@ -66,14 +68,14 @@ func (q *BracketQueue) dequeueStaled(now time.Time) []PlayerId {
 }
 
 type Result struct {
-	Competitions [][]PlayerId
-	Staled       []PlayerId
+	Competitions [][]player.PlayerId
+	Staled       []player.PlayerId
 }
 
 func (q *BracketQueue) Next(now time.Time) Result {
 	// cleanup from timeouted players
 	staled := q.dequeueStaled(now)
-	res := make([][]PlayerId, 0)
+	res := make([][]player.PlayerId, 0)
 	// form full competitions
 	for q.Len() >= uint(q.groupSize) {
 		s, _ := q.dequeue(q.groupSize)

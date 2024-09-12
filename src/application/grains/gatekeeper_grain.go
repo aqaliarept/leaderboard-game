@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Aqaliarept/leaderboard-game/domain"
+	"github.com/Aqaliarept/leaderboard-game/domain/player"
+	"github.com/Aqaliarept/leaderboard-game/domain/waiting_queue"
 	generated "github.com/Aqaliarept/leaderboard-game/generated/cluster"
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/scheduler"
@@ -15,7 +16,7 @@ import (
 type tick struct{}
 
 type GatekeeperGrain struct {
-	queue     *domain.BracketQueue
+	queue     *waiting_queue.BracketQueue
 	clock     clock
 	scheduler *scheduler.TimerScheduler
 }
@@ -23,13 +24,13 @@ type GatekeeperGrain struct {
 // Enqueue implements cluster.Gatekeeper.
 func (state *GatekeeperGrain) Enqueue(req *generated.EnqueueRequest, ctx cluster.GrainContext) (*generated.None, error) {
 	ctx.Logger().Info("ENQUEUE", "id", req.PlayerId, "level", req.Level)
-	state.queue.Push(domain.PlayerId(req.PlayerId), state.clock.Now())
+	state.queue.Push(player.PlayerId(req.PlayerId), state.clock.Now())
 	return none, nil
 }
 
 // Init implements cluster.Gatekeeper.
 func (state *GatekeeperGrain) Init(ctx cluster.GrainContext) {
-	state.queue = domain.NewQueue(10, 1, 5*time.Second, 2*time.Second)
+	state.queue = waiting_queue.NewQueue(10, 1, 5*time.Second, 2*time.Second)
 	state.clock = clock{}
 	state.scheduler = scheduler.NewTimerScheduler(ctx)
 	state.scheduler.SendRepeatedly(1*time.Second, 1*time.Second, ctx.Self(), &tick{})
@@ -45,7 +46,7 @@ func (state *GatekeeperGrain) ReceiveDefault(ctx cluster.GrainContext) {
 		if len(result.Competitions) > 0 {
 			ctx.Logger().Info("COMPETIONS", "count", len(result.Competitions))
 			for _, comp := range result.Competitions {
-				players := lo.Map(comp, func(id domain.PlayerId, _ int) string {
+				players := lo.Map(comp, func(id player.PlayerId, _ int) string {
 					return string(id)
 				})
 				client := generated.GetCompetitionGrainClient(ctx.Cluster(), uuid.NewString())

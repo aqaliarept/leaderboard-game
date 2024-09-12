@@ -1,4 +1,4 @@
-package domain
+package player
 
 import (
 	"errors"
@@ -28,7 +28,7 @@ var ErrNotPlaying = errors.New("not playing")
 var ErrAlreadyPlaying = errors.New("already playing")
 
 // events
-type PlayerCreated struct {
+type Created struct {
 	Level   Level
 	Country Country
 }
@@ -65,7 +65,7 @@ type PlayerState struct {
 // Apply implements core.AggregateState.
 func (p PlayerState) Apply(event core.Event) core.AggregateState {
 	switch e := event.(type) {
-	case PlayerCreated:
+	case Created:
 		p.Country = e.Country
 		p.Level = e.Level
 		p.Status = PlayerStatusIdle
@@ -96,9 +96,9 @@ type Player struct {
 	core.Aggregate[PlayerState]
 }
 
-func NewPlayer(id core.AggregateId, level Level, country Country) *Player {
+func New(id core.AggregateId, level Level, country Country) *Player {
 	player := Player{}
-	player.Initialize(id, PlayerCreated{level, country})
+	player.Initialize(id, Created{level, country})
 	return &player
 }
 

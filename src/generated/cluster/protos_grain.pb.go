@@ -15,16 +15,40 @@ import (
 	time "time"
 )
 
-func ErrUserNotFound(format string, args ...interface{}) *cluster.GrainErrorResponse {
-	return cluster.NewGrainErrorResponse(ErrorReason_USER_NOT_FOUND.String(), fmt.Sprintf(format, args...))
+func ErrPlayerNotFound(format string, args ...interface{}) *cluster.GrainErrorResponse {
+	return cluster.NewGrainErrorResponse(ErrorReason_PLAYER_NOT_FOUND.String(), fmt.Sprintf(format, args...))
 }
 
-func IsUserNotFound(err error) bool {
+func IsPlayerNotFound(err error) bool {
 	if err == nil {
 		return false
 	}
 	e := cluster.FromError(err)
-	return e.Reason == ErrorReason_USER_NOT_FOUND.String()
+	return e.Reason == ErrorReason_PLAYER_NOT_FOUND.String()
+}
+
+func ErrPlayerAlreadyPlaying(format string, args ...interface{}) *cluster.GrainErrorResponse {
+	return cluster.NewGrainErrorResponse(ErrorReason_PLAYER_ALREADY_PLAYING.String(), fmt.Sprintf(format, args...))
+}
+
+func IsPlayerAlreadyPlaying(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := cluster.FromError(err)
+	return e.Reason == ErrorReason_PLAYER_ALREADY_PLAYING.String()
+}
+
+func ErrPlayerNotPlaying(format string, args ...interface{}) *cluster.GrainErrorResponse {
+	return cluster.NewGrainErrorResponse(ErrorReason_PLAYER_NOT_PLAYING.String(), fmt.Sprintf(format, args...))
+}
+
+func IsPlayerNotPlaying(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := cluster.FromError(err)
+	return e.Reason == ErrorReason_PLAYER_NOT_PLAYING.String()
 }
 
 var xPlayerFactory func() Player

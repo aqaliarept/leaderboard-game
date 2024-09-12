@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Aqaliarept/leaderboard-game/domain"
+	"github.com/Aqaliarept/leaderboard-game/domain/player"
 	generated "github.com/Aqaliarept/leaderboard-game/generated/cluster"
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/gr1nd3rz/go-fast-ddd/core"
@@ -12,7 +13,7 @@ import (
 
 type PlayerGrain struct {
 	clock  Clock
-	player *domain.Player
+	player *player.Player
 }
 
 type PlayerGrainFactory struct {
@@ -31,7 +32,7 @@ func (f *PlayerGrainFactory) New() generated.Player {
 func (state *PlayerGrain) Init(ctx cluster.GrainContext) {
 	id := ctx.Identity()
 	ctx.Logger().Info("PLAYER CREATED", "id", id)
-	state.player = domain.NewPlayer(core.AggregateId(id), 1, "-")
+	state.player = player.New(core.AggregateId(id), 1, "-")
 }
 
 // ReceiveDefault implements Hello.
@@ -44,14 +45,16 @@ func (g *PlayerGrain) Terminate(ctx cluster.GrainContext) {
 
 // Hello implements Hello.
 func (state *PlayerGrain) Join(req *generated.JoinRequest, ctx cluster.GrainContext) (*generated.None, error) {
-	ctx.Logger().Info("JOIN")
+	ctx.Logger().Info("JOIN", "id", ctx.Identity())
 	pack, err := state.player.Join(state.clock.Now())
+	if errors.Is(err, player.ErrAlreadyPlaying) {
+		return none, generated.ErrPlayerAlreadyPlaying(err.Error())
+	}
 	if err != nil {
 		return none, err
 	}
-
-	_, err = EventOfType[domain.WaitingStarted](pack)
-	if errors.Is(err, ErrNotFound) {
+	_, err = domain.EventOfType[player.WaitingStarted](pack)
+	if errors.Is(err, domain.ErrNotFound) {
 		return none, nil
 	}
 	client := generated.GetGatekeeperGrainClient(ctx.Cluster(), "gatekeeper")
@@ -67,13 +70,13 @@ func (state *PlayerGrain) Join(req *generated.JoinRequest, ctx cluster.GrainCont
 
 // AddScores implements cluster.Player.
 func (state *PlayerGrain) AddScores(req *generated.AddScoresRequest, ctx cluster.GrainContext) (*generated.None, error) {
-	ctx.Logger().Info("ADD SCORES")
-	pack, err := state.player.AddScores(domain.Scores(req.Scores))
+	ctx.Logger().Info("ADD SCORES", "id", ctx.Identity(), "scores", req.Scores)
+	pack, err := state.player.AddScores(player.Scores(req.Scores))
 	if err != nil {
 		return none, err
 	}
-	e, err := EventOfType[domain.ScoresAdded](pack)
-	if errors.Is(err, ErrNotFound) {
+	e, err := domain.EventOfType[player.ScoresAdded](pack)
+	if errors.Is(err, domain.ErrNotFound) {
 		return none, nil
 	}
 	client := generated.GetCompetitionGrainClient(ctx.Cluster(), string(e.Competition))
@@ -89,21 +92,21 @@ func (state *PlayerGrain) AddScores(req *generated.AddScoresRequest, ctx cluster
 
 // CompleteCompetition implements cluster.Player.
 func (state *PlayerGrain) CompleteCompetition(req *generated.None, ctx cluster.GrainContext) (*generated.None, error) {
-	ctx.Logger().Info("COMPLETE COMPETITION")
+	ctx.Logger().Info("COMPLETE COMPETITION", "id", ctx.Identity())
 	_, err := state.player.CompleteCompetition()
 	return none, err
 }
 
 // StartCompetition implements cluster.Player.
 func (state *PlayerGrain) StartCompetition(req *generated.StartCompetitionRequest, ctx cluster.GrainContext) (*generated.None, error) {
-	ctx.Logger().Info("START COMPETITION", "id", req.Id)
-	_, err := state.player.StartCompetition(domain.CompetitionId(req.Id))
+	ctx.Logger().Info("START COMPETITION", "id", ctx.Identity(), "competition_id", req.Id)
+	_, err := state.player.StartCompetition(player.CompetitionId(req.Id))
 	return none, err
 }
 
 // WaitingExpired implements cluster.Player.
 func (state *PlayerGrain) WaitingExpired(req *generated.None, ctx cluster.GrainContext) (*generated.None, error) {
-	ctx.Logger().Info("WAITING EXPIRED")
+	ctx.Logger().Info("WAITING EXPIRED", "id", ctx.Identity())
 	_, err := state.player.WaitingExpired()
 	if err != nil {
 		return none, err
