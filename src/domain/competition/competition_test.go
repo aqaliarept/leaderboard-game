@@ -36,4 +36,16 @@ func TestCompetition(t *testing.T) {
 		c.ReportScores("2", 20)
 		require.Equal(t, []player.PlayerId{"2", "3", "1"}, mapPlayers(c.State().leaderboard))
 	})
+
+	t.Run(`Players with equal scores are sorted aphpabetically by ID
+`, func(t *testing.T) {
+		start := time.Now()
+		c := New("test", []player.PlayerId{"2", "1", "3"}, start, 1*time.Hour)
+		require.Equal(t, []player.PlayerId{"1", "2", "3"}, mapPlayers(c.State().leaderboard))
+
+		c.ReportScores("3", 30)
+		c.ReportScores("2", 30)
+		require.Equal(t, []player.PlayerId{"2", "3", "1"}, mapPlayers(c.State().leaderboard))
+
+	})
 }

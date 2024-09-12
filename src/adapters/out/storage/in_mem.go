@@ -6,40 +6,39 @@ import (
 	"github.com/Aqaliarept/leaderboard-game/application"
 	"github.com/Aqaliarept/leaderboard-game/domain/competition"
 	"github.com/Aqaliarept/leaderboard-game/domain/player"
-	"github.com/samber/lo"
 )
 
 type InMemStore struct {
 	leaderboard map[player.CompetitionId]*competition.CompetitionInfo
 	players     map[player.PlayerId]*competition.CompetitionInfo
-	input       chan lo.Tuple2[*competition.CompetitionInfo, bool]
+	input       chan *competition.CompetitionInfo
 }
 
 func NewMemStrore() application.LeaderBoardStorage {
 	return &InMemStore{
 		make(map[player.CompetitionId]*competition.CompetitionInfo),
 		make(map[player.PlayerId]*competition.CompetitionInfo),
-		make(chan lo.Tuple2[*competition.CompetitionInfo, bool], 100)}
+		make(chan *competition.CompetitionInfo, 100)}
 }
 
 func (m *InMemStore) Start() {
 	go func() {
 		for v := range m.input {
-			m.leaderboard[v.A.Id] = v.A
-			if v.B {
-				for _, p := range v.A.Players {
+			m.leaderboard[v.Id] = v
+			if v.IsCompleted {
+				for _, p := range v.Players {
 					delete(m.players, p.Id)
 				}
 			} else {
-				for _, p := range v.A.Players {
-					m.players[p.Id] = v.A
+				for _, p := range v.Players {
+					m.players[p.Id] = v
 				}
 			}
 		}
 	}()
 }
-func (m *InMemStore) Save(competition *competition.CompetitionInfo, isCompleted bool) {
-	m.input <- lo.T2(competition, isCompleted)
+func (m *InMemStore) Save(competition *competition.CompetitionInfo) {
+	m.input <- competition
 }
 
 func (m *InMemStore) Get(id player.CompetitionId) (*competition.CompetitionInfo, error) {

@@ -19,9 +19,10 @@ type PlayerInfo struct {
 }
 
 type CompetitionInfo struct {
-	Id      player.CompetitionId
-	EndsAt  time.Time
-	Players []PlayerInfo
+	Id          player.CompetitionId
+	EndsAt      time.Time
+	Players     []PlayerInfo
+	IsCompleted bool
 }
 
 type CompetitionState struct {
@@ -109,5 +110,6 @@ func (c *Competition) GetInfo() *CompetitionInfo {
 		lo.Map(set.GetRangeByRank(1, -1, false), func(n *sortedset.SortedSetNode[player.PlayerId, player.Scores, player.PlayerId], _ int) PlayerInfo {
 			return PlayerInfo{n.Key(), -n.Score()}
 		}),
+		c.State().competed,
 	}
 }

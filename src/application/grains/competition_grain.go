@@ -46,7 +46,7 @@ func (state *CompetitionGrain) AddScores(req *generated.AddPlayerScoresRequest, 
 	if err != nil {
 		return none, err
 	}
-	state.updateReadModel(false)
+	state.updateReadModel()
 	return none, nil
 }
 
@@ -69,7 +69,7 @@ func (state *CompetitionGrain) ReceiveDefault(ctx cluster.GrainContext) {
 		if errors.Is(err, domain.ErrNotFound) {
 			return
 		}
-		state.updateReadModel(true)
+		state.updateReadModel()
 		for _, player := range e.Players {
 			client := generated.GetPlayerGrainClient(ctx.Cluster(), string(player))
 			_, err := client.CompleteCompetition(none)
@@ -92,7 +92,7 @@ func (state *CompetitionGrain) Start(req *generated.StartRequest, ctx cluster.Gr
 		lo.Map(req.Players, func(id string, _ int) player.PlayerId {
 			return player.PlayerId(id)
 		}), state.clock.Now(), duration)
-	state.updateReadModel(false)
+	state.updateReadModel()
 	state.scheduler = scheduler.NewTimerScheduler(ctx)
 	state.scheduler.SendOnce(duration, ctx.Self(), &tick{})
 	for _, player := range req.Players {
@@ -105,6 +105,6 @@ func (state *CompetitionGrain) Start(req *generated.StartRequest, ctx cluster.Gr
 	return none, nil
 }
 
-func (state *CompetitionGrain) updateReadModel(isCompleted bool) {
-	state.storage.Save(state.competition.GetInfo(), isCompleted)
+func (state *CompetitionGrain) updateReadModel() {
+	state.storage.Save(state.competition.GetInfo())
 }
