@@ -1,57 +1,57 @@
 package main
 
 import (
-	"fmt"
-	"time"
+	"context"
+	"log"
 
+	httpapi "github.com/Aqaliarept/leaderboard-game/adapters/in/http_api"
 	"github.com/Aqaliarept/leaderboard-game/application/grains"
-	generated "github.com/Aqaliarept/leaderboard-game/cluster"
-
-	console "github.com/asynkron/goconsole"
-	actor "github.com/asynkron/protoactor-go/actor"
-	cluster "github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/test"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/Aqaliarept/leaderboard-game/application/services"
+	"github.com/Aqaliarept/leaderboard-game/generated/server/restapi"
+	"github.com/asynkron/protoactor-go/cluster"
+	"go.uber.org/fx"
 )
 
-type clock struct {
-}
-
-func (clock) Now() time.Time {
-	return time.Now()
+func configureContainer() fx.Option {
+	return fx.Options(
+		fx.Provide(NewClock),
+		fx.Provide(grains.NewPlayerGrainFactory),
+		fx.Provide(NewCluster),
+		fx.Provide(NewWebServer),
+		fx.Provide(httpapi.NewApiImpl),
+		fx.Provide(services.NewLeaderboardService),
+		fx.Invoke(registerHooks),
+	)
 }
 
 func main() {
-	system := actor.NewActorSystem()
-	provider := test.NewTestProvider(test.NewInMemAgent())
-	lookup := disthash.New()
-	config := remote.Configure("localhost", 0)
-	playerKind := generated.NewPlayerKind(grains.NewPlayerGrain, 0)
-	compKind := generated.NewCompetitionKind(grains.NewCompetitionGrain, 0)
-	gatekeeperKind := generated.NewGatekeeperKind(grains.NewGatekeeper, 0)
-	clusterConfig := cluster.Configure("test", provider, lookup, config, cluster.WithKinds(playerKind, compKind, gatekeeperKind))
-	cst := cluster.New(system, clusterConfig)
-	cst.StartMember()
-	client := generated.GetPlayerGrainClient(cst, "test")
-	_, err := client.Join(&generated.JoinRequest{Name: "player-1"})
-	if err != nil {
-		if generated.IsUserNotFound(err) {
-			fmt.Println("user not found")
-		} else {
-			fmt.Printf("unknown error: %v\n", err)
-		}
-	}
+	app := fx.New(
+		configureContainer(),
+	)
+	app.Run()
+}
 
-	// client := generated.GetGatekeeperGrainClient(cst, "gatekeeper")
-	// r := &generated.EnqueueRequest{
-	// 	PlayerId: "aaa",
-	// 	Level:    1,
-	// }
-	// _, err := client.Enqueue(r)
-	// if err != nil {
-	// 	fmt.Printf("unknown error: %v\n", err)
-	// }
-
-	_, _ = console.ReadLine()
+func registerHooks(lifecycle fx.Lifecycle, cluster *cluster.Cluster, server *restapi.Server) {
+	lifecycle.Append(
+		fx.Hook{
+			OnStart: func(ctx context.Context) error {
+				cluster.StartMember()
+				go func() {
+					err := server.Serve()
+					if err != nil {
+						panic(err)
+					}
+				}()
+				return nil
+			},
+			OnStop: func(ctx context.Context) error {
+				cluster.Shutdown(true)
+				err := server.Shutdown()
+				if err != nil {
+					log.Default().Printf("http shutdown error: %s", err.Error())
+				}
+				return nil
+			},
+		},
+	)
 }

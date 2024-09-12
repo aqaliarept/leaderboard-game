@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	generated "github.com/Aqaliarept/leaderboard-game/cluster"
+	generated "github.com/Aqaliarept/leaderboard-game/generated/cluster"
 	"github.com/google/go-cmp/cmp"
 	"github.com/gr1nd3rz/go-fast-ddd/core"
 )

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	generated "github.com/Aqaliarept/leaderboard-game/cluster"
 	"github.com/Aqaliarept/leaderboard-game/domain"
+	generated "github.com/Aqaliarept/leaderboard-game/generated/cluster"
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/gr1nd3rz/go-fast-ddd/core"
 )
@@ -15,8 +15,16 @@ type PlayerGrain struct {
 	player *domain.Player
 }
 
-func NewPlayerGrain() generated.Player {
-	return &PlayerGrain{clock{}, nil}
+type PlayerGrainFactory struct {
+	clock Clock
+}
+
+func NewPlayerGrainFactory(clock Clock) *PlayerGrainFactory {
+	return &PlayerGrainFactory{clock}
+}
+
+func (f *PlayerGrainFactory) New() generated.Player {
+	return &PlayerGrain{f.clock, nil}
 }
 
 // Init implements Hello.

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	generated "github.com/Aqaliarept/leaderboard-game/cluster"
 	"github.com/Aqaliarept/leaderboard-game/domain"
+	generated "github.com/Aqaliarept/leaderboard-game/generated/cluster"
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/scheduler"
 	"github.com/gr1nd3rz/go-fast-ddd/core"

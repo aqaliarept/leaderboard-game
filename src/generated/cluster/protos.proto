@@ -2,7 +2,7 @@ syntax = "proto3";
 
 import "options.proto";
 
-option go_package = "github.com/Aqaliarept/leaderboard-game/cluster";
+option go_package = "github.com/Aqaliarept/leaderboard-game/generated/cluster";
 
 message None {}
 
