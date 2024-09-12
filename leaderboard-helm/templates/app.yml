@@ -1,0 +1,74 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: leaderboard
+  labels:
+    name: leaderboard
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: leaderboard
+  namespace: leaderboard
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: leaderboard
+  namespace: leaderboard
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+      - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: leaderboard
+  namespace: leaderboard
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: leaderboard
+subjects:
+  - kind: ServiceAccount
+    name: leaderboard
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: leaderboard
+  namespace: leaderboard
+  labels:
+    app: leaderboard
+spec:
+  replicas: {{.Values.replicaCount}}
+  selector:
+    matchLabels:
+      app: leaderboard
+  template:
+    metadata:
+      namespace: leaderboard
+      labels:
+        app: leaderboard
+    spec:
+      serviceAccountName: leaderboard
+      containers:
+        - name: leaderboard
+          image: hello-world:latest
+          imagePullPolicy: Always # docker desktop
+          env:
+            # - name: KUBE_ENV
+            #   value: true
+            - name: PROTOHOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: PROTOPORT
+              value: "50051"
