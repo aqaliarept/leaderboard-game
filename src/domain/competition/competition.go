@@ -64,6 +64,7 @@ func (c CompetitionState) Apply(event core.Event) core.AggregateState {
 		c.leaderboard.AddOrUpdate(e.Player, e.Scores, e.Player)
 		return c
 	case Completed:
+		c.competed = true
 		return c
 	default:
 		panic(fmt.Errorf("%w event [%T]", errors.ErrUnsupported, event))
