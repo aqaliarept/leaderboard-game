@@ -49,4 +49,12 @@ The prerequisite for installation is the pre-installed Helm.
 
 Run `install.sh` in the root of the repo and application will be deployed into `leaderboard` namespace of the current k8s context.
 
+# Testing
+
 Game parameters (competition duration, size, etc) could be confugured by setting up values in `game` section of `leaderboard-helm/values.yaml`
+
+For easier testing competition time is reduced from 1 hour to 200 seconds.
+Competition will be started there is at least 2 players in the same level bracket
+Level brackets are 0-10, 11-20 and 21-30
+There are 30 players with ids from 1 to 30, the player's id corresponds to the player level, e.g. player with id=5 has level=5
+Any other players have 1 level.
