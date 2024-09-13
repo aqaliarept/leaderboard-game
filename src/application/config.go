@@ -2,21 +2,29 @@ package application
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"k8s.io/utils/env"
 )
 
 type Config struct {
+	RedisConnection     string
 	QueueWaitingTimeout time.Duration
 	CompetitionDuration time.Duration
 	CompetitionSize     uint
 	MinCompetitionSize  uint
 }
 
+func GetRedisConnection() string {
+	return os.Getenv("REDIS_CONNECTION")
+}
+
 func NewConfig() *Config {
 	conf := Config{}
 	var err error
+
+	conf.RedisConnection = GetRedisConnection()
 
 	sec, err := env.GetInt("COMPETITION_DURATION", 3600)
 	if err != nil {

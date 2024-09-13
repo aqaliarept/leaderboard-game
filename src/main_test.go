@@ -9,6 +9,7 @@ import (
 	"github.com/Aqaliarept/leaderboard-game/application"
 	"github.com/Aqaliarept/leaderboard-game/application/grains"
 	"github.com/Aqaliarept/leaderboard-game/application/services"
+	"github.com/Aqaliarept/leaderboard-game/domain/competition"
 	"github.com/Aqaliarept/leaderboard-game/domain/player"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
@@ -22,16 +23,20 @@ func Test_application_container_deps_configuration(t *testing.T) {
 
 func Test_application_tests(t *testing.T) {
 	config := application.Config{
+		"",
+		// "redis://localhost:6379",
 		4 * time.Second,
 		10 * time.Second,
 		10,
 		1,
 	}
 	clock := NewClock()
-	store := storage.NewMemStrore()
+	// store := storage.NewRedisStorage(config)
+	store := storage.NewTestStrore()
+	playerRepo := storage.NewTestPlayerRepo()
 	store.Start()
 	cluster := NewCluster(
-		grains.NewPlayerGrainFactory(clock),
+		grains.NewPlayerGrainFactory(clock, playerRepo),
 		grains.NewCompetitionGrainFactory(&config, clock, store),
 		grains.NewGatekeeperFactory(clock, &config),
 	)
@@ -40,7 +45,7 @@ func Test_application_tests(t *testing.T) {
 	svc := services.NewLeaderboardService(cluster, store)
 
 	players := lo.Map(lo.Range(21), func(i int, _ int) player.PlayerId {
-		return player.PlayerId(strconv.Itoa(i))
+		return player.PlayerId(strconv.Itoa(i + 1))
 	})
 
 	// enque
@@ -51,9 +56,12 @@ func Test_application_tests(t *testing.T) {
 	require.True(t, done)
 
 	for i := 1; i < len(players); i++ {
-		id := player.PlayerId(strconv.Itoa(i))
-		err := svc.Join(id)
-		require.NoError(t, err)
+		go func() {
+			err := svc.Join(players[i])
+			if err != nil {
+				panic(err)
+			}
+		}()
 	}
 	time.Sleep(5 * time.Second)
 
@@ -68,4 +76,25 @@ func Test_application_tests(t *testing.T) {
 	leaderboard, err := svc.GetPlayer(players[20])
 	require.NoError(t, err)
 	require.Equal(t, 1, len(leaderboard.Players))
+
+	for i := 0; i < 10; i++ {
+		err := svc.AddSrores(players[i], player.Scores(i+1))
+		require.NoError(t, err)
+	}
+	time.Sleep(2 * time.Second)
+	leaderboard, err = svc.GetPlayer(players[0])
+	require.NoError(t, err)
+	require.NotEmpty(t, leaderboard.EndsAt)
+	require.Equal(t, []competition.PlayerInfo{
+		{"10", 10},
+		{"9", 9},
+		{"8", 8},
+		{"7", 7},
+		{"6", 6},
+		{"5", 5},
+		{"4", 4},
+		{"3", 3},
+		{"2", 2},
+		{"1", 1},
+	}, leaderboard.Players)
 }

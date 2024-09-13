@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Aqaliarept/leaderboard-game/application"
 	"github.com/Aqaliarept/leaderboard-game/domain"
 	"github.com/Aqaliarept/leaderboard-game/domain/player"
 	generated "github.com/Aqaliarept/leaderboard-game/generated/cluster"
@@ -14,25 +15,32 @@ import (
 type PlayerGrain struct {
 	clock  Clock
 	player *player.Player
+	repo   application.PlayersRepo
 }
 
 type PlayerGrainFactory struct {
 	clock Clock
+	application.PlayersRepo
 }
 
-func NewPlayerGrainFactory(clock Clock) *PlayerGrainFactory {
-	return &PlayerGrainFactory{clock}
+func NewPlayerGrainFactory(clock Clock, repo application.PlayersRepo) *PlayerGrainFactory {
+	return &PlayerGrainFactory{clock, repo}
 }
 
 func (f *PlayerGrainFactory) New() generated.Player {
-	return &PlayerGrain{f.clock, nil}
+	return &PlayerGrain{f.clock, nil, f.PlayersRepo}
 }
 
 // Init implements Hello.
 func (state *PlayerGrain) Init(ctx cluster.GrainContext) {
-	id := ctx.Identity()
+	id := player.PlayerId(ctx.Identity())
 	ctx.Logger().Info("PLAYER CREATED", "id", id)
-	state.player = player.New(core.AggregateId(id), 1, "-")
+	pi := state.repo.Get(id)
+	level := player.Level(1)
+	if pi != nil {
+		level = pi.Level
+	}
+	state.player = player.New(core.AggregateId(id), level, "-")
 }
 
 // ReceiveDefault implements Hello.

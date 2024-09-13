@@ -8,20 +8,20 @@ import (
 	"github.com/Aqaliarept/leaderboard-game/domain/player"
 )
 
-type InMemStore struct {
+type inMemStore struct {
 	leaderboard map[player.CompetitionId]*competition.CompetitionInfo
 	players     map[player.PlayerId]*competition.CompetitionInfo
 	input       chan *competition.CompetitionInfo
 }
 
-func NewMemStrore() application.LeaderBoardStorage {
-	return &InMemStore{
+func NewTestStrore() application.LeaderBoardStorage {
+	return &inMemStore{
 		make(map[player.CompetitionId]*competition.CompetitionInfo),
 		make(map[player.PlayerId]*competition.CompetitionInfo),
 		make(chan *competition.CompetitionInfo, 100)}
 }
 
-func (m *InMemStore) Start() {
+func (m *inMemStore) Start() {
 	go func() {
 		for v := range m.input {
 			m.leaderboard[v.Id] = v
@@ -40,11 +40,12 @@ func (m *InMemStore) Start() {
 		}
 	}()
 }
-func (m *InMemStore) Save(competition *competition.CompetitionInfo) {
+func (m *inMemStore) Save(competition *competition.CompetitionInfo) error {
 	m.input <- competition
+	return nil
 }
 
-func (m *InMemStore) Get(id player.CompetitionId) (*competition.CompetitionInfo, error) {
+func (m *inMemStore) Get(id player.CompetitionId) (*competition.CompetitionInfo, error) {
 	info, ok := m.leaderboard[id]
 	if !ok {
 		return nil, fmt.Errorf("%w leaderboard id: [%s]", application.ErrNotFound, id)
@@ -52,7 +53,7 @@ func (m *InMemStore) Get(id player.CompetitionId) (*competition.CompetitionInfo,
 	return info, nil
 }
 
-func (m *InMemStore) GetPlayer(id player.PlayerId) (*competition.CompetitionInfo, error) {
+func (m *inMemStore) GetPlayer(id player.PlayerId) (*competition.CompetitionInfo, error) {
 	info, ok := m.players[id]
 	if !ok {
 		return nil, fmt.Errorf("%w player id: [%s]", application.ErrNotFound, id)

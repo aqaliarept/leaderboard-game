@@ -58,6 +58,7 @@ func (c CompetitionState) Apply(event core.Event) core.AggregateState {
 			c.leaderboard.AddOrUpdate(p, 0, p)
 		}
 		c.players = e.Players
+		c.endsAt = e.EndsAt
 		return c
 	case ScoresUpdated:
 		c.leaderboard.AddOrUpdate(e.Player, e.Scores, e.Player)

@@ -45,7 +45,7 @@ func (state *CompetitionGrain) AddScores(req *generated.AddPlayerScoresRequest, 
 	if err != nil {
 		return none, err
 	}
-	state.updateReadModel()
+	state.updateReadModel(ctx)
 	return none, nil
 }
 
@@ -68,7 +68,7 @@ func (state *CompetitionGrain) ReceiveDefault(ctx cluster.GrainContext) {
 		if errors.Is(err, domain.ErrNotFound) {
 			return
 		}
-		state.updateReadModel()
+		state.updateReadModel(ctx)
 		for _, player := range e.Players {
 			client := generated.GetPlayerGrainClient(ctx.Cluster(), string(player))
 			_, err := client.CompleteCompetition(none)
@@ -92,7 +92,7 @@ func (state *CompetitionGrain) Start(req *generated.StartRequest, ctx cluster.Gr
 		lo.Map(req.Players, func(id string, _ int) player.PlayerId {
 			return player.PlayerId(id)
 		}), state.clock.Now(), duration)
-	state.updateReadModel()
+	state.updateReadModel(ctx)
 	state.scheduler = scheduler.NewTimerScheduler(ctx)
 	state.scheduler.SendOnce(duration, ctx.Self(), &tick{})
 	for _, player := range req.Players {
@@ -105,7 +105,10 @@ func (state *CompetitionGrain) Start(req *generated.StartRequest, ctx cluster.Gr
 	return none, nil
 }
 
-func (state *CompetitionGrain) updateReadModel() {
-	state.storage.Save(state.competition.GetInfo())
+func (state *CompetitionGrain) updateReadModel(ctx cluster.GrainContext) {
+	err := state.storage.Save(state.competition.GetInfo())
+	if err != nil {
+		ctx.Logger().Error(err.Error())
+	}
 	fmt.Printf("READMODEL UPDATED\n")
 }

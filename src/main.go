@@ -15,10 +15,15 @@ import (
 )
 
 func configureContainer() fx.Option {
+	storageOpt := fx.Provide(storage.NewTestStrore)
+	if application.GetRedisConnection() != "" {
+		storageOpt = fx.Provide(storage.NewRedisStorage)
+	}
 	return fx.Options(
 		fx.Provide(application.NewConfig),
 		fx.Provide(NewClock),
-		fx.Provide(storage.NewMemStrore),
+		storageOpt,
+		fx.Provide(storage.NewTestPlayerRepo),
 		fx.Provide(grains.NewGatekeeperFactory),
 		fx.Provide(grains.NewPlayerGrainFactory),
 		fx.Provide(grains.NewCompetitionGrainFactory),
