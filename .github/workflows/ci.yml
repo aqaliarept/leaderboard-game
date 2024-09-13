@@ -49,7 +49,9 @@
 name: ci
 on:
   push:
-
+    paths:
+      - src/**
+      - Dockerfile
 jobs:
   test:
     runs-on: ubuntu-latest

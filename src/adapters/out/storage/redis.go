@@ -16,7 +16,7 @@ type redisStorage struct {
 	redis *redis.Client
 }
 
-func NewRedisStorage(config application.Config) application.LeaderBoardStorage {
+func NewRedisStorage(config *application.Config) application.LeaderBoardStorage {
 	opts, err := redis.ParseURL(config.RedisConnection)
 	if err != nil {
 		panic(err)

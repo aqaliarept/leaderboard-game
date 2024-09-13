@@ -1,0 +1,1 @@
+helm upgrade --install leaderboard-helm ./leaderboard-helm

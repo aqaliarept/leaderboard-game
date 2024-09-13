@@ -8,7 +8,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
 spec:
-  storageClassName: { { .Values.strorageClass } }
+  storageClassName: {{.Values.storageClass}}
   accessModes:
     - ReadWriteOnce # Sets read and write access
   resources:

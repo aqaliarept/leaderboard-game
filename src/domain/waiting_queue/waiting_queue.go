@@ -18,14 +18,14 @@ type WaitingQueue struct {
 func NewWaitingQueue(desiredGroupSize uint, minGroupSize uint, waitingTimeout time.Duration, closeToDeadline time.Duration) *WaitingQueue {
 	return &WaitingQueue{
 		make(map[player.PlayerId]bool),
-		&bracketQueue{list.New(), 0, desiredGroupSize, minGroupSize, waitingTimeout, closeToDeadline},
-		&bracketQueue{list.New(), 0, desiredGroupSize, minGroupSize, waitingTimeout, closeToDeadline},
-		&bracketQueue{list.New(), 0, desiredGroupSize, minGroupSize, waitingTimeout, closeToDeadline},
+		newBracketQueue(desiredGroupSize, minGroupSize, waitingTimeout, closeToDeadline),
+		newBracketQueue(desiredGroupSize, minGroupSize, waitingTimeout, closeToDeadline),
+		newBracketQueue(desiredGroupSize, minGroupSize, waitingTimeout, closeToDeadline),
 	}
 }
 
 func (q *WaitingQueue) Push(player player.PlayerId, level player.Level, now time.Time) {
-	// checking for idemptency
+	// checking for idempotency
 	if q.players[player] {
 		return
 	}
