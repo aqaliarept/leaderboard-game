@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/Aqaliarept/leaderboard-game/application"
@@ -64,12 +65,13 @@ func (m *redisStorage) Save(info *competition.CompetitionInfo) error {
 
 func (m *redisStorage) Get(id player.CompetitionId) (*competition.CompetitionInfo, error) {
 	data, err := m.redis.Get(context.Background(), competitionKey(id)).Result()
+	if errors.Is(err, redis.Nil) {
+		return nil, fmt.Errorf("%w competition id: [%s]", application.ErrNotFound, id)
+	}
 	if err != nil {
 		return nil, err
 	}
-	if err == redis.Nil {
-		return nil, fmt.Errorf("%w competition id: [%s]", application.ErrNotFound, id)
-	}
+
 	res := competition.CompetitionInfo{}
 	err = json.Unmarshal([]byte(data), &res)
 	if err != nil {
@@ -80,11 +82,11 @@ func (m *redisStorage) Get(id player.CompetitionId) (*competition.CompetitionInf
 
 func (m *redisStorage) GetPlayer(id player.PlayerId) (*competition.CompetitionInfo, error) {
 	data, err := m.redis.Get(context.Background(), playerKey(id)).Result()
+	if errors.Is(err, redis.Nil) {
+		return nil, fmt.Errorf("%w player id: [%s]", application.ErrNotFound, id)
+	}
 	if err != nil {
 		return nil, err
-	}
-	if err == redis.Nil {
-		return nil, fmt.Errorf("%w player id: [%s]", application.ErrNotFound, id)
 	}
 	return m.Get(player.CompetitionId(data))
 }

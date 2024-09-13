@@ -49,4 +49,4 @@ The prerequisite for installation is the pre-installed Helm.
 
 Run `install.sh` in the root of the repo and application will be deployed into `leaderboard` namespace of the current k8s context.
 
-Game parameters (competition duration, size, etc) could be confugured by setting up ENV variables of the container. For more info see `./src/application/config.go`
+Game parameters (competition duration, size, etc) could be confugured by setting up values in `game` section of `leaderboard-helm/values.yaml`

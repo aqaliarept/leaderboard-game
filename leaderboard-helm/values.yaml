@@ -5,3 +5,8 @@
 replicaCount: 3
 hostname: example.com
 storageClass: local-path
+game:
+  competitionDuration: 200
+  queueWaitingTimeout: 30
+  competitionSize: 10
+  minCompetitionSize: 2
