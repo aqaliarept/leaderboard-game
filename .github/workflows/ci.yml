@@ -66,6 +66,7 @@ jobs:
           go test ./...
 
   docker:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Set up QEMU
