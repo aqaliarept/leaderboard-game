@@ -1,0 +1,114 @@
+package grains
+
+import (
+	"errors"
+	"fmt"
+
+	"github.com/Aqaliarept/leaderboard-game/application"
+	"github.com/Aqaliarept/leaderboard-game/domain"
+	"github.com/Aqaliarept/leaderboard-game/domain/competition"
+	"github.com/Aqaliarept/leaderboard-game/domain/player"
+
+	generated "github.com/Aqaliarept/leaderboard-game/generated/cluster"
+	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/scheduler"
+	"github.com/gr1nd3rz/go-fast-ddd/core"
+	"github.com/samber/lo"
+)
+
+type CompetitionGrainFactory struct {
+	config  *application.Config
+	clock   Clock
+	storage application.LeaderBoardStorage
+}
+
+func NewCompetitionGrainFactory(config *application.Config, clock Clock, storage application.LeaderBoardStorage) *CompetitionGrainFactory {
+	return &CompetitionGrainFactory{config, clock, storage}
+}
+
+func (f *CompetitionGrainFactory) New() generated.Competition {
+	return &CompetitionGrain{f.config, f.clock, f.storage, nil, nil}
+}
+
+type CompetitionGrain struct {
+	config      *application.Config
+	clock       Clock
+	storage     application.LeaderBoardStorage
+	scheduler   *scheduler.TimerScheduler
+	competition *competition.Competition
+}
+
+// AddScores implements cluster.Competition.
+func (state *CompetitionGrain) AddScores(req *generated.AddPlayerScoresRequest, ctx cluster.GrainContext) (*generated.None, error) {
+	ctx.Logger().Info("ADD SCORES")
+	_, err := state.competition.ReportScores(player.PlayerId(req.PlayerId), player.Scores(req.Scrores))
+	if err != nil {
+		return none, err
+	}
+	state.updateReadModel(ctx)
+	return none, nil
+}
+
+// Init implements cluster.Competition.
+func (state *CompetitionGrain) Init(ctx cluster.GrainContext) {
+	id := ctx.Identity()
+	ctx.Logger().Info("COMPETITION CREATED", "id", id)
+}
+
+// ReceiveDefault implements cluster.Competition.
+func (state *CompetitionGrain) ReceiveDefault(ctx cluster.GrainContext) {
+	switch ctx.Message().(type) {
+	case *tick:
+		// ctx.Logger().Info("COMPETITION TICK")
+		pack, err := state.competition.Complete()
+		if err != nil {
+			ctx.Logger().Error(err.Error())
+		}
+		e, err := domain.EventOfType[competition.Completed](pack)
+		if errors.Is(err, domain.ErrNotFound) {
+			return
+		}
+		state.updateReadModel(ctx)
+		for _, player := range e.Players {
+			client := generated.GetPlayerGrainClient(ctx.Cluster(), string(player))
+			_, err := client.CompleteCompetition(none)
+			if err != nil {
+				ctx.Logger().Error(fmt.Sprintf("player error: %s", err.Error()))
+			}
+		}
+	}
+}
+
+// Terminate implements cluster.Competition.
+func (c *CompetitionGrain) Terminate(ctx cluster.GrainContext) {
+}
+
+// Start implements cluster.Competition.
+func (state *CompetitionGrain) Start(req *generated.StartRequest, ctx cluster.GrainContext) (*generated.None, error) {
+	ctx.Logger().Info("COMPETITION STARTED")
+	id := ctx.Identity()
+	duration := state.config.CompetitionDuration
+	state.competition = competition.New(core.AggregateId(id),
+		lo.Map(req.Players, func(id string, _ int) player.PlayerId {
+			return player.PlayerId(id)
+		}), state.clock.Now(), duration)
+	state.updateReadModel(ctx)
+	state.scheduler = scheduler.NewTimerScheduler(ctx)
+	state.scheduler.SendOnce(duration, ctx.Self(), &tick{})
+	for _, player := range req.Players {
+		client := generated.GetPlayerGrainClient(ctx.Cluster(), player)
+		_, err := client.StartCompetition(&generated.StartCompetitionRequest{Id: id})
+		if err != nil {
+			ctx.Logger().Error(fmt.Sprintf("player error: %s", err.Error()))
+		}
+	}
+	return none, nil
+}
+
+func (state *CompetitionGrain) updateReadModel(ctx cluster.GrainContext) {
+	err := state.storage.Save(state.competition.GetInfo())
+	if err != nil {
+		ctx.Logger().Error(err.Error())
+	}
+	fmt.Printf("READMODEL UPDATED\n")
+}

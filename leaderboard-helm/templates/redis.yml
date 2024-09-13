@@ -1,0 +1,69 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: redis-pvc # Sets name of PVC
+  namespace: leaderboard
+  labels:
+    app: redis
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  storageClassName: {{.Values.storageClass}}
+  accessModes:
+    - ReadWriteOnce # Sets read and write access
+  resources:
+    requests:
+      storage: 1Gi # Sets volume size
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis # Sets Deployment name
+  namespace: leaderboard
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis/redis-stack-server:latest
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - name: redis
+              containerPort: 6379
+            - name: http
+              containerPort: 8001
+          volumeMounts:
+            - mountPath: /data
+              name: data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: redis-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis # Sets service name
+  namespace: leaderboard
+  labels:
+    app: redis # Labels and Selectors
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  type: ClusterIP # Sets service type
+  selector:
+    app: redis
+  ports:
+    - name: redis
+      port: 6379
+    - name: http
+      port: 8001
