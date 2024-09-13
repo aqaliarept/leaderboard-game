@@ -10,7 +10,6 @@ import (
 var ErrNotFound = errors.New("not found")
 
 type LeaderBoardStorage interface {
-	Start()
 	Save(competition *competition.CompetitionInfo) error
 	Get(id player.CompetitionId) (*competition.CompetitionInfo, error)
 	GetPlayer(id player.PlayerId) (*competition.CompetitionInfo, error)

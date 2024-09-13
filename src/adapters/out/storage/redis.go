@@ -25,9 +25,6 @@ func NewRedisStorage(config *application.Config) application.LeaderBoardStorage 
 	return &redisStorage{redis.NewClient(opts)}
 }
 
-func (m *redisStorage) Start() {
-}
-
 func competitionKey(id player.CompetitionId) string {
 	return fmt.Sprintf("leaderboard:%s", id)
 }

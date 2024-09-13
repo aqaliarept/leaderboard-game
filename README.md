@@ -22,7 +22,7 @@ The changes and new features should be introduced fast, that is why project must
 
 ### Commands
 
-For serving the workloads the cluster of actors was chosen (Proto.Actor framework). It provides all of the characteristics described above.
+For serving the workloads the cluster of actors was chosen ([Proto.Actor](https://proto.actor/) framework) and its [Grains](https://proto.actor/docs/cluster/) . It provides all of the characteristics described above.
 The cluster runs a top of Kubernetes, and use it for cluster configuration and discovery.
 
 In additional actor systems provide high throughtput, because active actors are located in memory, and there is no need to get them from database for serving the request.

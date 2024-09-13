@@ -46,7 +46,6 @@ func registerHooks(lifecycle fx.Lifecycle, cluster *cluster.Cluster, server *res
 	lifecycle.Append(
 		fx.Hook{
 			OnStart: func(ctx context.Context) error {
-				storage.Start()
 				cluster.StartMember()
 				go func() {
 					err := server.Serve()

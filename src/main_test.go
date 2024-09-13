@@ -34,7 +34,6 @@ func Test_application_tests(t *testing.T) {
 	// store := storage.NewRedisStorage(config)
 	store := storage.NewTestStrore()
 	playerRepo := storage.NewTestPlayerRepo()
-	store.Start()
 	cluster := NewCluster(
 		grains.NewPlayerGrainFactory(clock, playerRepo),
 		grains.NewCompetitionGrainFactory(&config, clock, store),
