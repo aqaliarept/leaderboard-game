@@ -1,5 +1,12 @@
 # Design decisions
 
+In contrast with a regular stateless web application, the game application is mostly stateful:
+
+- high command rate: it's not possible to store and reload state from the DB for each command from the player
+- related data should be placed on same servers for minimize network delays
+
+One of the possible way to deal with such kind stateful applications in respect to arch charecteristics listed below, is an actor model.
+
 ## Architectural characteristics
 
 I've defined scalability (elastisity in future), availability and maintainability as the main architecture characteristics.
