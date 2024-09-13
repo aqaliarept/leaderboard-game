@@ -3,7 +3,6 @@ package grains
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/Aqaliarept/leaderboard-game/application"
 	"github.com/Aqaliarept/leaderboard-game/domain"
@@ -17,22 +16,22 @@ import (
 	"github.com/samber/lo"
 )
 
-var duration = time.Duration(1 * time.Minute)
-
 type CompetitionGrainFactory struct {
+	config  *application.Config
 	clock   Clock
 	storage application.LeaderBoardStorage
 }
 
-func NewCompetitionGrainFactory(clock Clock, storage application.LeaderBoardStorage) *CompetitionGrainFactory {
-	return &CompetitionGrainFactory{clock, storage}
+func NewCompetitionGrainFactory(config *application.Config, clock Clock, storage application.LeaderBoardStorage) *CompetitionGrainFactory {
+	return &CompetitionGrainFactory{config, clock, storage}
 }
 
 func (f *CompetitionGrainFactory) New() generated.Competition {
-	return &CompetitionGrain{f.clock, f.storage, nil, nil}
+	return &CompetitionGrain{f.config, f.clock, f.storage, nil, nil}
 }
 
 type CompetitionGrain struct {
+	config      *application.Config
 	clock       Clock
 	storage     application.LeaderBoardStorage
 	scheduler   *scheduler.TimerScheduler
@@ -88,6 +87,7 @@ func (c *CompetitionGrain) Terminate(ctx cluster.GrainContext) {
 func (state *CompetitionGrain) Start(req *generated.StartRequest, ctx cluster.GrainContext) (*generated.None, error) {
 	ctx.Logger().Info("COMPETITION STARTED")
 	id := ctx.Identity()
+	duration := state.config.CompetitionDuration
 	state.competition = competition.New(core.AggregateId(id),
 		lo.Map(req.Players, func(id string, _ int) player.PlayerId {
 			return player.PlayerId(id)
@@ -107,4 +107,5 @@ func (state *CompetitionGrain) Start(req *generated.StartRequest, ctx cluster.Gr
 
 func (state *CompetitionGrain) updateReadModel() {
 	state.storage.Save(state.competition.GetInfo())
+	fmt.Printf("READMODEL UPDATED\n")
 }

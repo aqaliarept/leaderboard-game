@@ -62,12 +62,13 @@ func getClusterProvider() (cluster.ClusterProvider, *remote.Config) {
 func NewCluster(
 	playerFactory *grains.PlayerGrainFactory,
 	competitionFactory *grains.CompetitionGrainFactory,
+	gatekeperFactory *grains.GatekeeperFactory,
 ) *cluster.Cluster {
 	system := actor.NewActorSystem()
 	lookup := disthash.New()
 	playerKind := generated.NewPlayerKind(playerFactory.New, 0)
 	compKind := generated.NewCompetitionKind(competitionFactory.New, 0)
-	gatekeeperKind := generated.NewGatekeeperKind(grains.NewGatekeeper, 0)
+	gatekeeperKind := generated.NewGatekeeperKind(gatekeperFactory.New, 0)
 	provider, config := getClusterProvider()
 	clusterConfig := cluster.Configure("test", provider, lookup, config, cluster.WithKinds(playerKind, compKind, gatekeeperKind))
 	return cluster.New(system, clusterConfig)

@@ -25,13 +25,16 @@ func (m *InMemStore) Start() {
 	go func() {
 		for v := range m.input {
 			m.leaderboard[v.Id] = v
+			fmt.Printf("updated competition [%s]\n", v.Id)
 			if v.IsCompleted {
 				for _, p := range v.Players {
 					delete(m.players, p.Id)
+					fmt.Printf("player removed [%s]\n", p.Id)
 				}
 			} else {
 				for _, p := range v.Players {
 					m.players[p.Id] = v
+					fmt.Printf("player added [%s]\n", p.Id)
 				}
 			}
 		}

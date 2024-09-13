@@ -16,8 +16,10 @@ import (
 
 func configureContainer() fx.Option {
 	return fx.Options(
+		fx.Provide(application.NewConfig),
 		fx.Provide(NewClock),
 		fx.Provide(storage.NewMemStrore),
+		fx.Provide(grains.NewGatekeeperFactory),
 		fx.Provide(grains.NewPlayerGrainFactory),
 		fx.Provide(grains.NewCompetitionGrainFactory),
 		fx.Provide(NewCluster),

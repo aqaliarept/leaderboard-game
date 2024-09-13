@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Aqaliarept/leaderboard-game/application"
 	"github.com/Aqaliarept/leaderboard-game/domain/player"
 	"github.com/Aqaliarept/leaderboard-game/domain/waiting_queue"
 	generated "github.com/Aqaliarept/leaderboard-game/generated/cluster"
@@ -16,22 +17,42 @@ import (
 type tick struct{}
 
 type GatekeeperGrain struct {
-	queue     *waiting_queue.BracketQueue
-	clock     clock
+	config    *application.Config
+	queue     *waiting_queue.WaitingQueue
+	clock     Clock
 	scheduler *scheduler.TimerScheduler
+}
+
+type GatekeeperFactory struct {
+	clock  Clock
+	config *application.Config
+}
+
+func NewGatekeeperFactory(clock Clock, config *application.Config) *GatekeeperFactory {
+	return &GatekeeperFactory{clock, config}
+}
+
+func (f *GatekeeperFactory) New() generated.Gatekeeper {
+	return &GatekeeperGrain{
+		f.config,
+		waiting_queue.NewWaitingQueue(
+			f.config.CompetitionSize,
+			f.config.MinCompetitionSize,
+			f.config.QueueWaitingTimeout,
+			2*time.Second),
+		f.clock, nil,
+	}
 }
 
 // Enqueue implements cluster.Gatekeeper.
 func (state *GatekeeperGrain) Enqueue(req *generated.EnqueueRequest, ctx cluster.GrainContext) (*generated.None, error) {
 	ctx.Logger().Info("ENQUEUE", "id", req.PlayerId, "level", req.Level)
-	state.queue.Push(player.PlayerId(req.PlayerId), state.clock.Now())
+	state.queue.Push(player.PlayerId(req.PlayerId), player.Level(req.Level), state.clock.Now())
 	return none, nil
 }
 
 // Init implements cluster.Gatekeeper.
 func (state *GatekeeperGrain) Init(ctx cluster.GrainContext) {
-	state.queue = waiting_queue.NewQueue(10, 1, 5*time.Second, 2*time.Second)
-	state.clock = clock{}
 	state.scheduler = scheduler.NewTimerScheduler(ctx)
 	state.scheduler.SendRepeatedly(1*time.Second, 1*time.Second, ctx.Self(), &tick{})
 	ctx.Logger().Info("GATEKEEPER CREATED")
@@ -49,7 +70,9 @@ func (state *GatekeeperGrain) ReceiveDefault(ctx cluster.GrainContext) {
 				players := lo.Map(comp, func(id player.PlayerId, _ int) string {
 					return string(id)
 				})
-				client := generated.GetCompetitionGrainClient(ctx.Cluster(), uuid.NewString())
+				competitionId := uuid.NewString()
+				client := generated.GetCompetitionGrainClient(ctx.Cluster(), competitionId)
+				ctx.Logger().Info("INITIATE COMPETITION", "id", competitionId, "players", players)
 				_, err := client.Start(&generated.StartRequest{
 					Players: players,
 				})
@@ -73,8 +96,4 @@ func (state *GatekeeperGrain) ReceiveDefault(ctx cluster.GrainContext) {
 
 // Terminate implements cluster.Gatekeeper.
 func (g *GatekeeperGrain) Terminate(ctx cluster.GrainContext) {
-}
-
-func NewGatekeeper() generated.Gatekeeper {
-	return &GatekeeperGrain{}
 }

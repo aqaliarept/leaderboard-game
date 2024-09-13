@@ -102,7 +102,7 @@ func (state *PlayerGrain) CompleteCompetition(req *generated.None, ctx cluster.G
 
 // StartCompetition implements cluster.Player.
 func (state *PlayerGrain) StartCompetition(req *generated.StartCompetitionRequest, ctx cluster.GrainContext) (*generated.None, error) {
-	ctx.Logger().Info("START COMPETITION", "id", ctx.Identity(), "competition_id", req.Id)
+	ctx.Logger().Info("JOIN COMPETITION", "id", ctx.Identity(), "competition_id", req.Id)
 	_, err := state.player.StartCompetition(player.CompetitionId(req.Id))
 	return none, err
 }
