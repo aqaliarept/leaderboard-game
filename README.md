@@ -54,7 +54,9 @@ Project stucture organized according Hexagonal Architecture with folders structu
 
 The prerequisite for installation is the pre-installed Helm.
 
-Run `install.sh` in the root of the repo and application will be deployed into `leaderboard` namespace of the current k8s context.
+- run the command `kubectl get storageclasses` and copy the value of the your cluster storage class name.
+- update `stroageClass` value in `leaderboard-helm/values.yaml` with your cluster storage class.
+- run `install.sh` in the root of the repo and application will be deployed into `leaderboard` namespace of the current k8s context.
 
 # Testing
 

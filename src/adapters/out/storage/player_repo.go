@@ -14,7 +14,11 @@ type inMemPlayersRepo struct {
 
 // Get implements application.PlayersRepo.
 func (i *inMemPlayersRepo) Get(id player.PlayerId) *application.PlayerInfo {
-	return i.players[id]
+	p, ok := i.players[id]
+	if ok {
+		return p
+	}
+	return &application.PlayerInfo{id, 1}
 }
 
 func NewTestPlayerRepo() application.PlayersRepo {
